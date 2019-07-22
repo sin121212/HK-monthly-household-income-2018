@@ -1,0 +1,94 @@
+---
+editor_options:
+  chunk_output_type: inline
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(doParallel) # for speed up
+# return number of cores in your computer, but keep 2 core free
+no_cores <- detectCores() - 2
+cl <- makeCluster(no_cores, type="PSOCK")  
+# start parallel processing
+registerDoParallel(cl)  
+```
+
+```{r}
+# Import Data -----------------------------------------------------------------------------------------------------
+# path to folder that holds multiple .csv files (8 csv)
+folder <- "C:/Users/user/Desktop/Data_Science/HK_Income/"
+# create list of all .csv files in folder
+file_list <- list.files(path=folder, pattern="*.csv") 
+# read in each .csv file in file_list and create a data frame with the same name as the .csv file
+for (i in 1:length(file_list)){
+  assign(file_list[i], read.csv(paste(folder, file_list[i], sep='')))
+}
+file_list
+```
+```{r}
+# combine household income dataframe by rows
+hh_2018 <- do.call("rbind", list(hh2018q1_20pct.csv, hh2018q2_20pct.csv, hh2018q3_20pct.csv, hh2018q4_20pct.csv))
+# combine personal information dataframe by rows
+pp_2018 <- do.call("rbind", list(pp2018q1_20pct.csv, pp2018q2_20pct.csv, pp2018q3_20pct.csv, pp2018q4_20pct.csv))
+# merge hh & pp dataframe
+hh_pp_2018 <- merge(x=hh_2018,y=pp_2018,by=c("Year_Quarter","Household_reference_no"),all.x = TRUE)
+# drop useless Grossing_up_factor
+hh_pp_2018$Grossing_up_factor.x <- NULL
+hh_pp_2018$Grossing_up_factor.y <- NULL
+# Worked_hours have too many level (91 levels), combine it
+hh_pp_2018$Worked_hours <- as.integer(hh_pp_2018$Worked_hours)
+hh_pp_2018$Worked_hours <- floor(hh_pp_2018$Worked_hours/10)
+# display data structure
+str(hh_pp_2018)
+```
+```{r}
+# Convert variables type from int to factor
+nocol <- ncol(hh_pp_2018) # return number of columns
+for (i in 3:nocol){
+  hh_pp_2018[,i] <- as.factor(hh_pp_2018[,i])
+}
+str(hh_pp_2018)
+```
+
+```{r}
+# Cross-vaildation setting (2 fold CV)--------------------------------------------------------------------
+require(caret)
+require(e1071)
+set.seed(12345)
+control <- trainControl(method="repeatedcv", number=2, repeats=2)
+
+# Classification model(1) Multinomial Logistic Regression (MNL)--------------------------------------
+multinom_model <- train(Monthly_household_income ~.-Year_Quarter-Household_reference_no,
+                data=hh_pp_2018, 
+                method="multinom",
+                MaxNWts = 3000,
+                metric = "Accuracy",
+                trControl = control,
+                trace = FALSE)
+# Model summary
+multinom_model
+```
+
+```{r}
+# Fit MNL in data (raw refer to return the predicted income group instead of prob)
+hh_qq_MNL <- hh_pp_2018
+hh_qq_MNL$Pre_Income_MNL <- predict(multinom_model, newdata = hh_qq_MNL, "raw")
+# Measure model performance
+confusionMatrix(hh_qq_MNL$Monthly_household_income, hh_qq_MNL$Pre_Income_MNL)
+```
+
+```{r}
+# end parallel processing ----------------------------------------------------------------------------------
+stopCluster(cl)
+registerDoSEQ()
+```
+
+
+
+
+
+
+
+
