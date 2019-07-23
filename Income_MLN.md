@@ -1,5 +1,11 @@
-Test
+Multivariate Classification
 ================
+
+By default, R has only utilized one processor which is poor performance.
+
+Multicore processing can effectively reduce running time. In this project, the running time of: Single core: 28 minutes Multi cores: 9 minutes
+
+Almost three times faster!!!
 
 ``` r
 # for speed up
@@ -20,6 +26,8 @@ cl <- makeCluster(no_cores, type="PSOCK")
 registerDoParallel(cl)  
 ```
 
+Import multi-csv files in a folder. The 8 csv files name are shown as below.
+
 ``` r
 # Import Data -----------------------------------------------------------------------------------------------------
 # path to folder that holds multiple .csv files (8 csv)
@@ -36,6 +44,8 @@ file_list
     ## [1] "hh2018q1_20pct.csv" "hh2018q2_20pct.csv" "hh2018q3_20pct.csv"
     ## [4] "hh2018q4_20pct.csv" "pp2018q1_20pct.csv" "pp2018q2_20pct.csv"
     ## [7] "pp2018q3_20pct.csv" "pp2018q4_20pct.csv"
+
+Data Processing: Combine quarterly datasets into 1 dataset and drop useless variable. Noted that the data type of all variables is numeric. In fact, the data type should be factor instead of numeric.
 
 ``` r
 # combine household income dataframe by rows
@@ -82,6 +92,8 @@ str(hh_pp_2018)
     ##  $ Reasons_leaving_for_unemployed  : int  9 9 9 9 9 9 9 9 9 9 ...
     ##  $ Whether_foreign_domestic_helper : int  2 2 9 2 2 9 2 2 2 2 ...
 
+Convert variables type to factor.
+
 ``` r
 # Convert variables type from int to factor
 # return number of columns
@@ -119,6 +131,22 @@ str(hh_pp_2018)
     ##  $ Duration_of_unemployment        : Factor w/ 6 levels "1","2","3","4",..: 6 6 6 6 6 6 6 6 6 6 ...
     ##  $ Reasons_leaving_for_unemployed  : Factor w/ 4 levels "1","2","3","9": 4 4 4 4 4 4 4 4 4 4 ...
     ##  $ Whether_foreign_domestic_helper : Factor w/ 3 levels "1","2","9": 2 2 3 2 2 3 2 2 2 2 ...
+
+Classification of Multi-Class Response Variable:
+
+There are 11 levels in response variable "Monthly\_household\_income"
+
+Code Description 01 &lt;4,000 02 4,000 - 5,999 03 6,000 - 7,999 04 8,000 - 9,999 05 10,000 - 14,999 06 15,000 - 19,999 07 20,000 - 24,999 08 25,000 - 29,999 09 30,000 - 39,999 10 40,000 - 49,999 11 ??? 50,000
+
+``` r
+str(hh_pp_2018$Monthly_household_income)
+```
+
+    ##  Factor w/ 11 levels "1","2","3","4",..: 10 10 10 9 9 3 10 11 11 3 ...
+
+Construct Classification Model --- Multinomial Logistic Regression (MNL) Use 23 factors to predict the household belong to which income group.
+
+To avoid overfitting problem, 2-fold cross-validation had been used.
 
 ``` r
 # Cross-vaildation setting (2 fold CV)--------------------------------------------------------------------
@@ -171,6 +199,10 @@ multinom_model
     ## 
     ## Accuracy was used to select the optimal model using the largest value.
     ## The final value used for the model was decay = 0.1.
+
+Measure Model Performance: Confusion Matrix
+
+Accuracy = 0.4291, it means that predicted income group of almost 43% observations are exactly match.
 
 ``` r
 # Fit MNL in data (raw refer to return the predicted income group instead of prob)
@@ -240,6 +272,54 @@ confusionMatrix(hh_qq_MNL$Monthly_household_income, hh_qq_MNL$Pre_Income_MNL)
     ## Detection Rate        0.01256 0.003787  0.04564  0.004836    0.2829
     ## Detection Prevalence  0.09041 0.076090  0.14859  0.112766    0.3187
     ## Balanced Accuracy     0.61252 0.623743  0.57508  0.597869    0.7362
+
+Also, we can measure the over/under estimate of predicted income group. if "Deviation" is positive number, it over-estimate the predicted income. In the other hand, if "Deviation" is negative number, it under-estimate the predicted income.
+
+For example, if "Deviation" is +2, it means that the predicted income is more over-estimate 2 classes than real income.
+
+``` r
+# Convert datatype from factor to numeric
+Pred <- as.numeric(hh_qq_MNL$Pre_Income_MNL)
+Real <- as.numeric(hh_qq_MNL$Monthly_household_income)
+
+# Different between predicted income group and real income group
+Deviation <- Pred - Real
+```
+
+Let see the frequency of different (+ - ) between predicted income group and real income group
+
+``` r
+# for freq table
+library(descr) 
+freq(Deviation)
+```
+
+![](Income_MLN_files/figure-markdown_github/unnamed-chunk-9-1.png)
+
+    ## Deviation 
+    ##       Frequency  Percent
+    ## -10          70   0.1498
+    ## -9           83   0.1776
+    ## -8          100   0.2140
+    ## -7           87   0.1862
+    ## -6          225   0.4814
+    ## -5          491   1.0506
+    ## -4          972   2.0799
+    ## -3         1362   2.9144
+    ## -2         2758   5.9015
+    ## -1         3291   7.0420
+    ## 0         20054  42.9109
+    ## 1          5716  12.2309
+    ## 2          4981  10.6582
+    ## 3          2602   5.5677
+    ## 4          1937   4.1447
+    ## 5           896   1.9172
+    ## 6           552   1.1812
+    ## 7           133   0.2846
+    ## 8           153   0.3274
+    ## 9           125   0.2675
+    ## 10          146   0.3124
+    ## Total     46734 100.0000
 
 ``` r
 # end parallel processing ----------------------------------------------------------------------------------
