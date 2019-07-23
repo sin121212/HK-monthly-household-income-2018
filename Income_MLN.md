@@ -3,7 +3,11 @@ Multivariate Classification
 
 By default, R has only utilized one processor which is poor performance.
 
-Multicore processing can effectively reduce running time. In this project, the running time of: Single core: 28 minutes Multi cores: 9 minutes
+Multicore processing can effectively reduce running time. In this project, the running time of:
+
+Single core: 28 minutes
+
+Multi cores: 9 minutes
 
 Almost three times faster!!!
 
@@ -45,7 +49,9 @@ file_list
     ## [4] "hh2018q4_20pct.csv" "pp2018q1_20pct.csv" "pp2018q2_20pct.csv"
     ## [7] "pp2018q3_20pct.csv" "pp2018q4_20pct.csv"
 
-Data Processing: Combine quarterly datasets into 1 dataset and drop useless variable. Noted that the data type of all variables is numeric. In fact, the data type should be factor instead of numeric.
+Data Processing: Combine quarterly datasets into 1 dataset and drop useless variable.
+
+Noted that the data type of all variables is numeric. In fact, the data type should be factor instead of numeric.
 
 ``` r
 # combine household income dataframe by rows
@@ -136,7 +142,29 @@ Classification of Multi-Class Response Variable:
 
 There are 11 levels in response variable "Monthly\_household\_income"
 
-Code Description 01 &lt;4,000 02 4,000 - 5,999 03 6,000 - 7,999 04 8,000 - 9,999 05 10,000 - 14,999 06 15,000 - 19,999 07 20,000 - 24,999 08 25,000 - 29,999 09 30,000 - 39,999 10 40,000 - 49,999 11 ??? 50,000
+Code Description
+
+01 &lt; 4,000
+
+02 4,000 - 5,999
+
+03 6,000 - 7,999
+
+04 8,000 - 9,999
+
+05 10,000 - 14,999
+
+06 15,000 - 19,999
+
+07 20,000 - 24,999
+
+08 25,000 - 29,999
+
+09 30,000 - 39,999
+
+10 40,000 - 49,999
+
+11 &gt; 50,000
 
 ``` r
 str(hh_pp_2018$Monthly_household_income)
@@ -144,7 +172,9 @@ str(hh_pp_2018$Monthly_household_income)
 
     ##  Factor w/ 11 levels "1","2","3","4",..: 10 10 10 9 9 3 10 11 11 3 ...
 
-Construct Classification Model --- Multinomial Logistic Regression (MNL) Use 23 factors to predict the household belong to which income group.
+Construct Classification Model --- Multinomial Logistic Regression (MNL)
+
+Use 23 factors to predict the household belong to which income group.
 
 To avoid overfitting problem, 2-fold cross-validation had been used.
 
@@ -273,7 +303,11 @@ confusionMatrix(hh_qq_MNL$Monthly_household_income, hh_qq_MNL$Pre_Income_MNL)
     ## Detection Prevalence  0.09041 0.076090  0.14859  0.112766    0.3187
     ## Balanced Accuracy     0.61252 0.623743  0.57508  0.597869    0.7362
 
-Also, we can measure the over/under estimate of predicted income group. if "Deviation" is positive number, it over-estimate the predicted income. In the other hand, if "Deviation" is negative number, it under-estimate the predicted income.
+Also, we can measure the over/under estimate of predicted income group.
+
+if "Deviation" is positive number, it over-estimate the predicted income.
+
+In the other hand, if "Deviation" is negative number, it under-estimate the predicted income.
 
 For example, if "Deviation" is +2, it means that the predicted income is more over-estimate 2 classes than real income.
 
@@ -286,7 +320,7 @@ Real <- as.numeric(hh_qq_MNL$Monthly_household_income)
 Deviation <- Pred - Real
 ```
 
-Let see the frequency of different (+ - ) between predicted income group and real income group
+Let see the frequency of different (+ - ) between predicted income group and real income group.
 
 ``` r
 # for freq table
@@ -320,6 +354,14 @@ freq(Deviation)
     ## 9           125   0.2675
     ## 10          146   0.3124
     ## Total     46734 100.0000
+
+Plot the frequency of different (+ - ) between predicted income group and real income group.
+
+``` r
+plot(freq(Deviation))
+```
+
+![](Income_MLN_files/figure-markdown_github/unnamed-chunk-10-1.png)![](Income_MLN_files/figure-markdown_github/unnamed-chunk-10-2.png)
 
 ``` r
 # end parallel processing ----------------------------------------------------------------------------------
